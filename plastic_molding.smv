@@ -1,7 +1,210 @@
 module timer(){
   I : 0..1;   /* вход  */
   Q : 0..1;   /* выход */
-  init(I):=0; init(Q):=0; /* инициализация */
-  next(Q):= next(I) & I & (Q | {0, 1}); /* новое значение выхода с исключением срабатывания сразу же при активации */
+  init(I) := 0; init(Q) := 0; /* инициализация */
+  next(Q) := next(I) & I & (Q | {0, 1}); /* новое значение выхода с исключением срабатывания сразу же при активации */
   FAIRNESS I -> Q;  /* условие честного срабатывания таймера */
+}
+
+module main()
+{
+  /* Variable definition */
+    /* Inputs */
+		  /* Push buttons: */
+		  StartPB) := 0;
+		  StopPB) := 0;
+		  InterruptPB) := 0;
+
+	    /* Sensors: */
+		  Weight0S) := 0;
+		  Weight1S) := 0;
+		  ClosedDamperS) := 0;
+		  OpenedDamperS) := 0;
+		  TareS) := 0;
+		  UpperTempS) := 0;
+		  BottomTempS) := 0;
+		  WorkingTempS) := 0;
+
+	  /* Outputs */
+		  /* Actuators / Lamps */
+		  StartFeed) := 0;
+		  OpenValve) := 0;
+		  RunConveyor) := 0;
+		  OpenDamper) := 0;
+		  CloseDamper) := 0;
+		  TurnOnHeater) := 0;
+
+		  /* States / Lamps */
+		  SystemIsOn) := 0;
+		  Stopping) := 0;
+		  Melting) := 0;
+		  NoFeed) := 0;
+		  BrokenHeater) := 0;
+		  NoTare) := 0;
+
+		  /* Lamps */
+		  EmptyDispenserLmp) := 0;
+		  FullDispenserLmp) := 0;
+		  TrippedTareSLmp) := 0;
+		  OpenedDamperLmp) := 0;
+		  ClosedDamperLmp) := 0;
+		  UpperTempLmp) := 0;
+		  BottomTempLmp) := 0;
+		  WorkingTempLmp) := 0;
+
+      /* Timers are in global variables temporarily for convenience. */
+      FeederTmr: timer;  /* Wating for feeding */
+      HeaterTmr: timer; /* Wating for heating */
+      TareTmr: timer; /* Waiting for tare */
+      MeltingTmr: timer; /* Wating for melting */
+
+    /* Variables that were defined in PLC_PRG */
+      SmoothStopping) := 0;
+      TareNotEmpty) := 0;
+  
+  /* Initialization */
+    /* Inputs */
+		  /* Push buttons: */
+		  init(StartPB) := 0;
+		  init(StopPB) := 0;
+		  init(InterruptPB) := 0;
+
+	    /* Sensors: */
+		  init(Weight0S) := 0;
+		  init(Weight1S) := 0;
+		  init(ClosedDamperS) := 0;
+		  init(OpenedDamperS) := 0;
+		  init(TareS) := 0;
+		  init(UpperTempS) := 0;
+		  init(BottomTempS) := 0;
+		  init(WorkingTempS) := 0;
+
+	  /* Outputs */
+		  /* Actuators / Lamps */
+		  init(StartFeed) := 0;
+		  init(OpenValve) := 0;
+		  init(RunConveyor) := 0;
+		  init(OpenDamper) := 0;
+		  init(CloseDamper) := 0;
+		  init(TurnOnHeater) := 0;
+
+		  /* States / Lamps */
+		  init(SystemIsOn) := 0;
+		  init(Stopping) := 0;
+		  init(Melting) := 0;
+		  init(NoFeed) := 0;
+		  init(BrokenHeater) := 0;
+		  init(NoTare) := 0;
+
+		  /* Lamps */
+		  init(EmptyDispenserLmp) := 0;
+		  init(FullDispenserLmp) := 0;
+		  init(TrippedTareSLmp) := 0;
+		  init(OpenedDamperLmp) := 0;
+		  init(ClosedDamperLmp) := 0;
+		  init(UpperTempLmp) := 0;
+		  init(BottomTempLmp) := 0;
+		  init(WorkingTempLmp) := 0;
+
+    /* Variables that were defined in PLC_PRG */
+      init(SmoothStopping) := 0;
+      init(TareNotEmpty) := 0;
+
+  /* Transitions */
+    /* Inputs */
+		  /* Push buttons: */
+		  next(StartPB) := {0,1};
+		  next(StopPB) := {0,1};
+		  next(InterruptPB) := {0,1};
+
+	    /* Sensors: */
+		  next(Weight0S) := {0,1};
+		  next(Weight1S) := {0,1};
+		  next(ClosedDamperS) := {0,1};
+		  next(OpenedDamperS) := {0,1};
+		  next(TareS) := {0,1};
+		  next(UpperTempS) := {0,1};
+		  next(BottomTempS) := {0,1};
+		  next(WorkingTempS) := {0,1};
+
+    /* Outputs */
+      /* Timers */
+      next(FeederTmr.I) := next(StartFeed) & ~next(Weight1S);
+      next(TareTmr.I) := next(RunConveyor) & ~next(TareS);
+      next(HeaterTmr.I) := next(TurnOnHeater) & ~next(WorkingTempS);
+      next(MeltingTmr.I) := SystemIsOn & next(ClosedDamperS) & next(WorkingTempS);
+      (* 4 *)
+      case {
+        next(TareS) & (next(OpenValve) | next(TareNotEmpty)) : next(TareNotEmpty) := 1;
+        default : next(TareNotEmpty) := 0;
+      };
+      (* 6 *)
+      case {
+        ~SystemIsOn & next(StartPB) & ~next(InterruptPB) : next(SystemIsOn) := 1;
+        SystemIsOn & (next(InterruptPB) | next(SmoothStopping)) : next(SystemIsOn) := 0;
+        default : next(SystemIsOn) := SystemIsOn;
+      };
+      (* 7 *)
+      next(SmoothStopping) := Stopping &
+        ~next(StartFeed) & ~next(RunConveyor) & ~next(OpenDamper) & ~next(CloseDamper) &
+        ~next(OpenValve) & next(OpenedDamperS) & next(Weight0S) &
+        ~next(BrokenHeater) & ~next(NoTare) & ~next(NoFeed);
+      (* 8 *)
+      case {
+        ~Stopping & SystemIsOn & next(StopPB) : next(Stopping) := 1;
+        ~SystemIsOn : next(Stopping) := 0;
+        default : next(Stopping) := Stopping;
+      };
+      (* 9 *)
+      case {
+        next(FeederTmr.Q) & ~next(Weight1S) : next(NoFeed) := 1;
+        ~SystemIsOn | next(Weight1S) : next(NoFeed) := 0;
+        default : next(NoFeed) := NoFeed;
+      };
+      (* 10 *)
+      case {
+        next(TareTmr.Q) & ~next(TareS) : next(NoTare) := 1;
+        ~SystemIsOn | next(TareS) : next(NoTare) := 0;
+        default : next(NoTare) := NoTare;
+      };
+      (* 11 *)
+      case {
+        next(HeaterTmr.Q) | next(HeaterTmr.I) & WorkingTempS : next(BrokenHeater) := 1;
+        ~SystemIsOn | next(WorkingTempS) : next(BrokenHeater) := 0;
+        default : next(BrokenHeater) := BrokenHeater;
+      };
+      (* 12 *)
+      next(StartFeed) := SystemIsOn & next(OpenedDamperS) & ~next(Weight1S) &
+        (~next(Weight0S) | ~Stopping) & ~next(NoFeed);
+      (* 13 *)
+      next(OpenValve) := SystemIsOn & next(ClosedDamperS) & ~next(Weight0S) & next(TareS) &
+        next(WorkingTempS) & next(MeltingTmr.Q) &
+        ~next(RunConveyor) &
+        (next(Weight1S) & next(TareS) | next(OpenValve));
+      (* 14 *)
+      next(RunConveyor) := SystemIsOn & ~next(OpenValve) &
+        (~next(TareS) & ~next(NoTare) | next(TareNotEmpty));
+      (* 15 *)
+      next(CloseDamper) := SystemIsOn & next(Weight1S) & ~next(ClosedDamperS);
+      (* 16 *)
+      next(OpenDamper) := SystemIsOn & ~next(OpenValve) & ~next(Weight1S) & ~next(OpenedDamperS);
+      (* 17 *)
+      case {
+        SystemIsOn & ~next(BottomTempS) & ~next(BrokenHeater) & ~next(NoTare) : next(TurnOnHeater) := 1;
+        ~SystemIsOn | next(UpperTempS) | next(BrokenHeater) | next(NoTare) : next(TurnOnHeater) := 0;
+        default : next(TurnOnHeater) := TurnOnHeater;
+      };
+      (* Lamps *)
+      next(EmptyDispenserLmp) := next(Weight0S);
+      next(FullDispenserLmp) := next(Weight1S);
+      next(TrippedTareSLmp) := next(TareS);
+      next(OpenedDamperLmp) := next(OpenedDamperS);
+      next(ClosedDamperLmp) := next(ClosedDamperS);
+      next(UpperTempLmp) := next(UpperTempS);
+      next(BottomTempLmp) := next(BottomTempS);
+      next(WorkingTempLmp) := next(WorkingTempS);
+
+    /* Section of coordinated behavior of sensors */
+    
+    /* Properties section */
 }
