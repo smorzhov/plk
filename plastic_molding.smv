@@ -284,5 +284,39 @@ module main()
       P10_ResetErrorSignal: assert G(BrokenHeater & ~X(BrokenHeater) | NoFeed & ~X(NoFeed) | NoTare & ~X(NoTare) -> X(InterruptPB));
 
       /* Coordinated behavior */
-      P11_
+      P11_StartFeedIsOn: assert G(StartFeed -> F(~StartFeed));
+      P11_OpenDamperIsOn: assert G(OpenDamper -> F(~OpenDamper));
+      P11_CloseDamperIsOn: assert G(CloseDamper -> F(~CloseDamper));
+      P11_ConveyorIsOn: assert G(RunConveyor -> F(~RunConveyor));
+      P11_ValveIsOn: assert G(OpenValve -> F(~OpenValve));
+
+      P12_StartFeedIsOff: assert G(~StartFeed -> F(StartFeed | NoFeed | ~SystemIsOn));
+      P12_OpenDamperIsOff: assert G(~OpenDamper -> F(OpenDamper | ~SystemIsOn));
+      P12_CloseDamperIsOff: assert G(~CloseDamper -> F(CloseDamper | ~SystemIsOn));
+      P12_ConveyorIsOff: assert G(~RunConveyor -> F(RunConveyor | ~SystemIsOn));
+      P12_ValveIsOff: assert G(~OpenValve -> F(OpenValve | ~SystemIsOn));
+      P12_HeaterIsOff: assert G(~TurnOnHeater -> F(TurnOnHeater | BrokenHeater | ~SystemIsOn));
+
+      P13_SmoothStop: assert G(SmoothStopping -> F(~SystemIsOn | BrokenHeater | NoTare | NoFeed));
+
+      P14_CorrectCompletion: assert G(SmoothStopping & ~InterruptPB & ~X(SystemIsOn) -> X(
+        ~TurnOnHeater & ~StartFeed & ~OpenDamper & ~CloseDamper & ~OpenValve & ~RunConveyor &
+        OpenedDamperLmp & TareS & EmptyDispenserLmp & ~ClosedDamperLmp & ~FullDispenserLmp
+        )
+      );
+
+      P15_StopFeeding: assert G(SystemIsOn & ~NoFeed & ~SmoothStopping & ~Weight0S -> X(CloseDamper) & X(Weight1S));
+
+      P16_ClosingDamper: assert G(CloseDamper & ~X(CloseDamper) & X(ClosedDamperS) & SystemIsOn -> ClosedDamperS & Weight1S & F(OpenValve | BrokenHeater | NoTare | ~SystemIsOn));
+
+      P17_StoppFilling: assert G(~OpenValve & SystemIsOn & ~BrokenHeater -> X(RunConveyor) & X(OpenDamper));
+
+      P18_OpeningDamper: assert G(OpenDamper & ~X(OpenDamper) & SystemIsOn & ~SmoothStopping & Weight0S -> X(StartFeed) & OpenedDamperS);
+
+      P19_Error: assert G(BrokenHeater | NoTare | NoFeed -> F(
+        ~RunConveyor & ~OpenValve & ~StartFeed & ~TurnOnHeater & (OpenedDamperS | ClosedDamperS)
+        )
+      );
+
+      /* 20th step called P12_HeaterIsOff */
 }
