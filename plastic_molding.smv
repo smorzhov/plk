@@ -11,46 +11,46 @@ module main()
   /* Variable definition */
     /* Inputs */
 		  /* Push buttons: */
-		  StartPB) := 0;
-		  StopPB) := 0;
-		  InterruptPB) := 0;
+		  StartPB := 0;
+		  StopPB := 0;
+		  InterruptPB := 0;
 
 	    /* Sensors: */
-		  Weight0S) := 0;
-		  Weight1S) := 0;
-		  ClosedDamperS) := 0;
-		  OpenedDamperS) := 0;
-		  TareS) := 0;
-		  UpperTempS) := 0;
-		  BottomTempS) := 0;
-		  WorkingTempS) := 0;
+		  Weight0S := 0;
+		  Weight1S := 0;
+		  ClosedDamperS := 0;
+		  OpenedDamperS := 0;
+		  TareS := 0;
+		  UpperTempS := 0;
+		  BottomTempS := 0;
+		  WorkingTempS := 0;
 
 	  /* Outputs */
 		  /* Actuators / Lamps */
-		  StartFeed) := 0;
-		  OpenValve) := 0;
-		  RunConveyor) := 0;
-		  OpenDamper) := 0;
-		  CloseDamper) := 0;
-		  TurnOnHeater) := 0;
+		  StartFeed := 0;
+		  OpenValve := 0;
+		  RunConveyor := 0;
+		  OpenDamper := 0;
+		  CloseDamper := 0;
+		  TurnOnHeater := 0;
 
 		  /* States / Lamps */
-		  SystemIsOn) := 0;
-		  Stopping) := 0;
-		  Melting) := 0;
-		  NoFeed) := 0;
-		  BrokenHeater) := 0;
-		  NoTare) := 0;
+		  SystemIsOn := 0;
+		  Stopping := 0;
+		  Melting := 0;
+		  NoFeed := 0;
+		  BrokenHeater := 0;
+		  NoTare := 0;
 
 		  /* Lamps */
-		  EmptyDispenserLmp) := 0;
-		  FullDispenserLmp) := 0;
-		  TrippedTareSLmp) := 0;
-		  OpenedDamperLmp) := 0;
-		  ClosedDamperLmp) := 0;
-		  UpperTempLmp) := 0;
-		  BottomTempLmp) := 0;
-		  WorkingTempLmp) := 0;
+		  EmptyDispenserLmp := 0;
+		  FullDispenserLmp := 0;
+		  TrippedTareSLmp := 0;
+		  OpenedDamperLmp := 0;
+		  ClosedDamperLmp := 0;
+		  UpperTempLmp := 0;
+		  BottomTempLmp := 0;
+		  WorkingTempLmp := 0;
 
       /* Timers are in global variables temporarily for convenience. */
       FeederTmr: timer;  /* Wating for feeding */
@@ -59,8 +59,8 @@ module main()
       MeltingTmr: timer; /* Wating for melting */
 
     /* Variables that were defined in PLC_PRG */
-      SmoothStopping) := 0;
-      TareNotEmpty) := 0;
+      SmoothStopping := 0;
+      TareNotEmpty := 0;
   
   /* Initialization */
     /* Inputs */
@@ -205,6 +205,84 @@ module main()
       next(WorkingTempLmp) := next(WorkingTempS);
 
     /* Section of coordinated behavior of sensors */
+      /* 1 Closed damper sensor */
+      C_ClosedDamperS_1: assert G(X(ClosedDamperS) -> ~OpenedDamperS);
+      C_ClosedDamperS_2: assert G(~ClosedDamperS & X(ClosedDamperS) -> CloseDamper & ~OpenedDamperS & ~X(OpenedDamperS)); 
+      C_ClosedDamperS_3: assert G(ClosedDamperS & ~X(ClosedDamperS) -> OpenDamper & ~OpenedDamperS & ~X(OpenedDamperS));
+      C_ClosedDamperS_4: assert G(G(ClosedDamperS) -> F(G(~OpenDamper)) | G(OpenDamper -> F(CloseDamper)));
+      C_ClosedDamperS_5: assert G(G(~ClosedDamperS) -> F(G(~CloseDamper)) | G(CloseDamper -> F(OpenDamper)));
+
+      /* 2 Opened damper sensor */
+      C_OpenedDamperS_1: assert G(X(OpenedDamperS) -> ~ClosedDamperS);
+      C_OpenedDamperS_2: assert G(~OpenedDamperS & X(OpenedDamperS) -> OpenDamper & ~ClosedDamperS & ~X(ClosedDamperS));
+      C_OpenedDamperS_3: assert G(OpenedDamperS & ~X(OpenedDamperS) -> CloseDamper & ~ClosedDamperS & ~X(ClosedDamperS));
+      C_OpenedDamperS_4: assert G(G(OpenedDamperS) -> F(G(~CloseDamper)) | G(CloseDamper -> F(OpenDamper)));
+      C_OpenedDamperS_5: assert G(G(~OpenedDamperS) -> F(G(~OpenDamper)) | G(OpenDamper -> F(CloseDamper)));
+
+      /* 3 Weight 1 sensor */
+      C_Weight1S_1: assert G(X(Weight1S) -> Weight0S);
+      C_Weight1S_2: assert G(~Weight1S & X(Weight1S) -> StartFeed & ~ClosedDamperS & ~Weight0S & ~X(Weight0S));
+      C_Weight1S_3: assert G(Weight1S & ~X(Weight1S) -> StartFeed & WorkingTempS & ~Weight0S & ~X(Weight0S));
+      C_Weight1S_4: assert G(G(Weight1S) -> F(G(~OpenValve & WorkingTempS)) | G(OpenValve & WorkingTempS -> F(StartFeed & ~ClosedDamperS)));
+
+      /* 3 Weight 0 sensor */
+      C_Weight0S_1: assert G(X(Weight0S) -> Weight1S);
+      C_Weight0S_2: assert G(~Weight0S & X(Weight0S) -> StartFeed & WorkingTempS & ~Weight1S & ~X(Weight1S));
+      C_Weight0S_3: assert G(Weight0S & ~X(Weight0S) -> StartFeed & ~ClosedDamperS & ~Weight1S & ~X(Weight1S));
+      C_Weight0S_4: assert G(G(~Weight1S) -> F(G(~OpenValve & WorkingTempS)) | G(OpenValve & WorkingTempS -> F(StartFeed & ~ClosedDamperS)));
+
+      /* 4 Tare sensor */
+      C_TareS_1: assert G(~TareS & X(TareS) | TareS & ~X(TareS) -> RunConveyor);
+      C_TareS_2: assert G(G(TareS) -> F(G(~RunConveyor)));
+
+      /* 5 Working temperature sensor */
+      C_WorkingTempS_1: assert G(~X(WorkingTempS) -> ~BottomTempS & ~UpperTempS);
+      C_WorkingTempS_2: assert G(~WorkingTempS & X(WorkingTempS) -> TurnOnHeater & ~BottomTempS & ~X(BottomTempS) & ~UpperTempS & ~X(UpperTempS));
+      C_WorkingTempS_3: assert G(WorkingTempS & ~X(WorkingTempS) -> ~BottomTempS & ~X(BottomTempS) & ~UpperTempS & ~X(UpperTempS));
+      C_WorkingTempS_4: assert G(G(WorkingTempS) -> F(G(TurnOnHeater)) | G(~TurnOnHeater -> F(TurnOnHeater)));
+      
+      /* 5 Bottom temperature sensor */
+      C_BottomTempS_1: assert G(X(BottomTempS) -> WorkingTempS);
+      C_BottomTempS_2: assert G(~X(BottomTempS) -> ~UpperTempS);
+      C_BottomTempS_3: assert G(~BottomTempS & X(BottomTempS) -> TurnOnHeater & WorkingTempS & X(WorkingTempS) & ~UpperTempS) & ~X(UpperTempS)));
+      C_BottomTempS_4: assert G(BottomTempS & ~X(BottomTempS) -> WorkingTempS & X(WorkingTempS) & ~UpperTempS) & ~X(UpperTempS)));
+      C_BottomTempS_5: assert G(G(BottomTempS) -> F(G(TurnOnHeater)) | G(~TurnOnHeater -> F(TurnOnHeater)));
+
+      /* Upper temperature sensor */
+      C_UpperTempS_1: assert G(X(UpperTempS) -> WorkingTempS & BottomTempS);
+      C_UpperTempS_2: assert G(~UpperTempS & X(UpperTempS) -> TurnOnHeater & WorkingTempS & X(WorkingTempS) & BottomTempS & X(BottomTempS));
+      C_UpperTempS_3: assert G(UpperTempS & ~X(UpperTempS) -> WorkingTempS & X(WorkingTempS) & BottomTempS & X(BottomTempS));
+      C_UpperTempS_4: assert G(G(UpperTempS) -> F(G(TurnOnHeater)) | G(~TurnOnHeater -> F(TurnOnHeater)));
     
     /* Properties section */
+      /* Without the coordinated behavior of sensors */
+      P01_Interrupt: assert G(InterruptPB -> ~SystemIsOn);
+
+      P02_OffSystem: assert G(~SystemIsOn -> (
+        ~OpenValve & ~TurnOnHeater & ~CloseDamper & ~OpenDamper & ~StartFeed & ~RunConveyor &
+        ~OpenValve & ~RunConveyor
+        )
+      );
+
+      P03_DamperActuator: assert G((OpenDamper + CloseDamper <= 1) & (OpenedDamperS + ClosedDamperS <= 1));
+
+      P04_Modes: assert G((StartFeed + OpenValve <= 1) & (StartFeed | OpenValve -> ~RunConveyor));
+
+      P05_ValveAndConveyor: assert G(RunConveyor + OpenValve <= 1);
+
+      P06_ConveyorAndTare: assert G(~TareS & X(TareS) -> ~RunConveyor);
+
+      P07_DamperMotion: assert G(~OpenDamper | ~CloseDamper -> OpenedDamperS | ClosedDamperS | ~SystemIsOn);
+
+      P08_Portion: assert G(~OpenValve & X(OpenValve) -> Weight1S & ~TareNotEmpty);
+
+      P09_ForgottenFeederTmr: assert G(FeederTmr.Q -> X(~FeederTmr.Q));
+      P09_ForgottenHeaterTmr: assert G(HeaterTmr.Q -> X(~HeaterTmr.Q));
+      P09_ForgottenTareTmr: assert G(TareTmr.Q -> X(~TareTmr.Q));
+      P09_ForgottenMeltingTmr: assert G(MeltingTmr.Q -> X(~MeltingTmr.Q));
+
+      P10_ResetErrorSignal: assert G(BrokenHeater & ~X(BrokenHeater) | NoFeed & ~X(NoFeed) | NoTare & ~X(NoTare) -> X(InterruptPB));
+
+      /* Coordinated behavior */
+      P11_
 }
