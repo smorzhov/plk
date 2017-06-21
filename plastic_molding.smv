@@ -1,4 +1,4 @@
-module timer(){
+﻿module timer(){
   I : 0..1;   /* вход  */
   Q : 0..1;   /* выход */
   init(I) := 0; init(Q) := 0; /* инициализация */
@@ -11,46 +11,46 @@ module main()
   /* Variable definition */
     /* Inputs */
 		  /* Push buttons: */
-		  StartPB := 0;
-		  StopPB := 0;
-		  InterruptPB := 0;
+		  StartPB: 0..1;
+		  StopPB: 0..1;
+		  InterruptPB: 0..1;
 
 	    /* Sensors: */
-		  Weight0S := 0;
-		  Weight1S := 0;
-		  ClosedDamperS := 0;
-		  OpenedDamperS := 0;
-		  TareS := 0;
-		  UpperTempS := 0;
-		  BottomTempS := 0;
-		  WorkingTempS := 0;
+		  Weight0S: 0..1;
+		  Weight1S: 0..1;
+		  ClosedDamperS: 0..1;
+		  OpenedDamperS: 0..1;
+		  TareS: 0..1;
+		  UpperTempS: 0..1;
+		  BottomTempS: 0..1;
+		  WorkingTempS: 0..1;
 
 	  /* Outputs */
 		  /* Actuators / Lamps */
-		  StartFeed := 0;
-		  OpenValve := 0;
-		  RunConveyor := 0;
-		  OpenDamper := 0;
-		  CloseDamper := 0;
-		  TurnOnHeater := 0;
+		  StartFeed: 0..1;
+		  OpenValve: 0..1;
+		  RunConveyor: 0..1;
+		  OpenDamper: 0..1;
+		  CloseDamper: 0..1;
+		  TurnOnHeater: 0..1;
 
 		  /* States / Lamps */
-		  SystemIsOn := 0;
-		  Stopping := 0;
-		  Melting := 0;
-		  NoFeed := 0;
-		  BrokenHeater := 0;
-		  NoTare := 0;
+		  SystemIsOn: 0..1;
+		  Stopping: 0..1;
+		  Melting: 0..1;
+		  NoFeed: 0..1;
+		  BrokenHeater: 0..1;
+		  NoTare: 0..1;
 
 		  /* Lamps */
-		  EmptyDispenserLmp := 0;
-		  FullDispenserLmp := 0;
-		  TrippedTareSLmp := 0;
-		  OpenedDamperLmp := 0;
-		  ClosedDamperLmp := 0;
-		  UpperTempLmp := 0;
-		  BottomTempLmp := 0;
-		  WorkingTempLmp := 0;
+		  EmptyDispenserLmp: 0..1;
+		  FullDispenserLmp: 0..1;
+		  TrippedTareSLmp: 0..1;
+		  OpenedDamperLmp: 0..1;
+		  ClosedDamperLmp: 0..1;
+		  UpperTempLmp: 0..1;
+		  BottomTempLmp: 0..1;
+		  WorkingTempLmp: 0..1;
 
       /* Timers are in global variables temporarily for convenience. */
       FeederTmr: timer;  /* Wating for feeding */
@@ -59,8 +59,8 @@ module main()
       MeltingTmr: timer; /* Wating for melting */
 
     /* Variables that were defined in PLC_PRG */
-      SmoothStopping := 0;
-      TareNotEmpty := 0;
+      SmoothStopping: 0..1;
+      TareNotEmpty: 0..1;
   
   /* Initialization */
     /* Inputs */
@@ -129,72 +129,72 @@ module main()
 
     /* Outputs */
       /* Timers */
-      next(FeederTmr.I) := next(StartFeed) & ~next(Weight1S);
-      next(TareTmr.I) := next(RunConveyor) & ~next(TareS);
-      next(HeaterTmr.I) := next(TurnOnHeater) & ~next(WorkingTempS);
+      next(FeederTmr.I) := StartFeed & ~next(Weight1S);
+      next(TareTmr.I) := RunConveyor & ~next(TareS);
+      next(HeaterTmr.I) := TurnOnHeater & ~next(WorkingTempS);
       next(MeltingTmr.I) := SystemIsOn & next(ClosedDamperS) & next(WorkingTempS);
-      (* 4 *)
+      /* 4 */
       case {
         next(TareS) & (next(OpenValve) | next(TareNotEmpty)) : next(TareNotEmpty) := 1;
         default : next(TareNotEmpty) := 0;
       };
-      (* 6 *)
+      /* 6 */
       case {
         ~SystemIsOn & next(StartPB) & ~next(InterruptPB) : next(SystemIsOn) := 1;
         SystemIsOn & (next(InterruptPB) | next(SmoothStopping)) : next(SystemIsOn) := 0;
         default : next(SystemIsOn) := SystemIsOn;
       };
-      (* 7 *)
+      /* 7 */
       next(SmoothStopping) := Stopping &
         ~next(StartFeed) & ~next(RunConveyor) & ~next(OpenDamper) & ~next(CloseDamper) &
         ~next(OpenValve) & next(OpenedDamperS) & next(Weight0S) &
         ~next(BrokenHeater) & ~next(NoTare) & ~next(NoFeed);
-      (* 8 *)
+      /* 8 */
       case {
         ~Stopping & SystemIsOn & next(StopPB) : next(Stopping) := 1;
         ~SystemIsOn : next(Stopping) := 0;
         default : next(Stopping) := Stopping;
       };
-      (* 9 *)
+      /* 9 */
       case {
         next(FeederTmr.Q) & ~next(Weight1S) : next(NoFeed) := 1;
         ~SystemIsOn | next(Weight1S) : next(NoFeed) := 0;
         default : next(NoFeed) := NoFeed;
       };
-      (* 10 *)
+      /* 10 */
       case {
         next(TareTmr.Q) & ~next(TareS) : next(NoTare) := 1;
         ~SystemIsOn | next(TareS) : next(NoTare) := 0;
         default : next(NoTare) := NoTare;
       };
-      (* 11 *)
+      /* 11 */
       case {
         next(HeaterTmr.Q) | next(HeaterTmr.I) & WorkingTempS : next(BrokenHeater) := 1;
         ~SystemIsOn | next(WorkingTempS) : next(BrokenHeater) := 0;
         default : next(BrokenHeater) := BrokenHeater;
       };
-      (* 12 *)
+      /* 12 */
       next(StartFeed) := SystemIsOn & next(OpenedDamperS) & ~next(Weight1S) &
         (~next(Weight0S) | ~Stopping) & ~next(NoFeed);
-      (* 13 *)
+      /* 13 */
       next(OpenValve) := SystemIsOn & next(ClosedDamperS) & ~next(Weight0S) & next(TareS) &
         next(WorkingTempS) & next(MeltingTmr.Q) &
         ~next(RunConveyor) &
         (next(Weight1S) & next(TareS) | next(OpenValve));
-      (* 14 *)
+      /* 14 */
       next(RunConveyor) := SystemIsOn & ~next(OpenValve) &
         (~next(TareS) & ~next(NoTare) | next(TareNotEmpty));
-      (* 15 *)
+      /* 15 */
       next(CloseDamper) := SystemIsOn & next(Weight1S) & ~next(ClosedDamperS);
-      (* 16 *)
+      /* 16 */
       next(OpenDamper) := SystemIsOn & ~next(OpenValve) & ~next(Weight1S) & ~next(OpenedDamperS);
-      (* 17 *)
+      /* 17 */
       case {
         SystemIsOn & ~next(BottomTempS) & ~next(BrokenHeater) & ~next(NoTare) : next(TurnOnHeater) := 1;
         ~SystemIsOn | next(UpperTempS) | next(BrokenHeater) | next(NoTare) : next(TurnOnHeater) := 0;
         default : next(TurnOnHeater) := TurnOnHeater;
       };
-      (* Lamps *)
+      /* Lamps */
       next(EmptyDispenserLmp) := next(Weight0S);
       next(FullDispenserLmp) := next(Weight1S);
       next(TrippedTareSLmp) := next(TareS);
@@ -244,8 +244,8 @@ module main()
       /* 5 Bottom temperature sensor */
       C_BottomTempS_1: assert G(X(BottomTempS) -> WorkingTempS);
       C_BottomTempS_2: assert G(~X(BottomTempS) -> ~UpperTempS);
-      C_BottomTempS_3: assert G(~BottomTempS & X(BottomTempS) -> TurnOnHeater & WorkingTempS & X(WorkingTempS) & ~UpperTempS) & ~X(UpperTempS)));
-      C_BottomTempS_4: assert G(BottomTempS & ~X(BottomTempS) -> WorkingTempS & X(WorkingTempS) & ~UpperTempS) & ~X(UpperTempS)));
+      C_BottomTempS_3: assert G(~BottomTempS & X(BottomTempS) -> TurnOnHeater & WorkingTempS & X(WorkingTempS) & ~X(UpperTempS) & ~X(UpperTempS));
+      C_BottomTempS_4: assert G(BottomTempS & ~X(BottomTempS) -> WorkingTempS & X(WorkingTempS) & ~X(UpperTempS) & ~X(UpperTempS));
       C_BottomTempS_5: assert G(G(BottomTempS) -> F(G(TurnOnHeater)) | G(~TurnOnHeater -> F(TurnOnHeater)));
 
       /* Upper temperature sensor */
