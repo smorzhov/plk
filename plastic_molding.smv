@@ -319,4 +319,33 @@ module main()
       );
 
       /* 20th step called P12_HeaterIsOff */
+
+      using
+        C_ClosedDamperS_1, C_ClosedDamperS_2, C_ClosedDamperS_3, C_ClosedDamperS_4, C_ClosedDamperS_5,
+        C_OpenedDamperS_1, C_OpenedDamperS_2, C_OpenedDamperS_3, C_OpenedDamperS_4, C_OpenedDamperS_5,
+        C_Weight1S_1, C_Weight1S_2, C_Weight1S_3, C_Weight1S_4,
+        C_Weight0S_1, C_Weight0S_2, C_Weight0S_3, C_Weight0S_4,
+        C_TareS_1, C_TareS_2,
+        C_WorkingTempS_1, C_WorkingTempS_2, C_WorkingTempS_3, C_WorkingTempS_4,
+        C_BottomTempS_1, C_BottomTempS_2, C_BottomTempS_3, C_BottomTempS_4, C_BottomTempS_5,
+        C_UpperTempS_1, C_UpperTempS_2, C_UpperTempS_3, C_UpperTempS_4
+      prove
+        P11_StartFeedIsOn,
+        P11_OpenDamperIsOn,
+        P11_CloseDamperIsOn,
+        P11_ConveyorIsOn,
+        P11_ValveIsOn,
+        P12_StartFeedIsOff,
+        P12_OpenDamperIsOff,
+        P12_CloseDamperIsOff,
+        P12_ConveyorIsOff,
+        P12_ValveIsOff,
+        P12_HeaterIsOff,
+        P13_SmoothStop,
+        P14_CorrectCompletion,
+        P15_StopFeeding,
+        P16_ClosingDamper,
+        P17_StoppFilling,
+        P18_OpeningDamper,
+        P19_Error;
 }
