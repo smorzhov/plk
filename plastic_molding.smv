@@ -133,9 +133,14 @@ module main()
       next(TareTmr.I) := RunConveyor & ~next(TareS);
       next(HeaterTmr.I) := TurnOnHeater & ~next(WorkingTempS);
       next(MeltingTmr.I) := SystemIsOn & next(ClosedDamperS) & next(WorkingTempS);
+      /* 7 */
+      next(SmoothStopping) := Stopping &
+        ~StartFeed & ~RunConveyor & ~OpenDamper & ~CloseDamper &
+        ~OpenValve & next(OpenedDamperS) & next(Weight0S) &
+        ~BrokenHeater & ~NoTare & ~NoFeed;
       /* 4 */
       case {
-        next(TareS) & (next(OpenValve) | next(TareNotEmpty)) : next(TareNotEmpty) := 1;
+        next(TareS) & (OpenValve | TareNotEmpty) : next(TareNotEmpty) := 1;
         default : next(TareNotEmpty) := 0;
       };
       /* 6 */
@@ -144,54 +149,49 @@ module main()
         SystemIsOn & (next(InterruptPB) | next(SmoothStopping)) : next(SystemIsOn) := 0;
         default : next(SystemIsOn) := SystemIsOn;
       };
-      /* 7 */
-      next(SmoothStopping) := Stopping &
-        ~next(StartFeed) & ~next(RunConveyor) & ~next(OpenDamper) & ~next(CloseDamper) &
-        ~next(OpenValve) & next(OpenedDamperS) & next(Weight0S) &
-        ~next(BrokenHeater) & ~next(NoTare) & ~next(NoFeed);
       /* 8 */
       case {
-        ~Stopping & SystemIsOn & next(StopPB) : next(Stopping) := 1;
-        ~SystemIsOn : next(Stopping) := 0;
+        ~Stopping & next(SystemIsOn) & next(StopPB) : next(Stopping) := 1;
+        ~next(SystemIsOn) : next(Stopping) := 0;
         default : next(Stopping) := Stopping;
       };
       /* 9 */
       case {
         next(FeederTmr.Q) & ~next(Weight1S) : next(NoFeed) := 1;
-        ~SystemIsOn | next(Weight1S) : next(NoFeed) := 0;
+        ~next(SystemIsOn) | next(Weight1S) : next(NoFeed) := 0;
         default : next(NoFeed) := NoFeed;
       };
       /* 10 */
       case {
         next(TareTmr.Q) & ~next(TareS) : next(NoTare) := 1;
-        ~SystemIsOn | next(TareS) : next(NoTare) := 0;
+        ~next(SystemIsOn) | next(TareS) : next(NoTare) := 0;
         default : next(NoTare) := NoTare;
       };
       /* 11 */
       case {
-        next(HeaterTmr.Q) | next(HeaterTmr.I) & WorkingTempS : next(BrokenHeater) := 1;
-        ~SystemIsOn | next(WorkingTempS) : next(BrokenHeater) := 0;
+        next(HeaterTmr.Q) | next(HeaterTmr.I) & next(WorkingTempS) : next(BrokenHeater) := 1;
+        ~next(SystemIsOn) | next(WorkingTempS) : next(BrokenHeater) := 0;
         default : next(BrokenHeater) := BrokenHeater;
       };
       /* 12 */
-      next(StartFeed) := SystemIsOn & next(OpenedDamperS) & ~next(Weight1S) &
-        (~next(Weight0S) | ~Stopping) & ~next(NoFeed);
+      next(StartFeed) := next(SystemIsOn) & next(OpenedDamperS) & ~next(Weight1S) &
+        (~next(Weight0S) | ~next(Stopping)) & ~next(NoFeed);
       /* 13 */
-      next(OpenValve) := SystemIsOn & next(ClosedDamperS) & ~next(Weight0S) & next(TareS) &
+      next(OpenValve) := next(SystemIsOn) & next(ClosedDamperS) & ~next(Weight0S) & next(TareS) &
         next(WorkingTempS) & next(MeltingTmr.Q) &
-        ~next(RunConveyor) &
-        (next(Weight1S) & next(TareS) | next(OpenValve));
+        ~RunConveyor &
+        (next(Weight1S) & next(TareS) | OpenValve);
       /* 14 */
-      next(RunConveyor) := SystemIsOn & ~next(OpenValve) &
+      next(RunConveyor) := next(SystemIsOn) & ~next(OpenValve) &
         (~next(TareS) & ~next(NoTare) | next(TareNotEmpty));
       /* 15 */
-      next(CloseDamper) := SystemIsOn & next(Weight1S) & ~next(ClosedDamperS);
+      next(CloseDamper) := next(SystemIsOn) & next(Weight1S) & ~next(ClosedDamperS);
       /* 16 */
-      next(OpenDamper) := SystemIsOn & ~next(OpenValve) & ~next(Weight1S) & ~next(OpenedDamperS);
+      next(OpenDamper) := next(SystemIsOn) & ~next(OpenValve) & ~next(Weight1S) & ~next(OpenedDamperS);
       /* 17 */
       case {
-        SystemIsOn & ~next(BottomTempS) & ~next(BrokenHeater) & ~next(NoTare) : next(TurnOnHeater) := 1;
-        ~SystemIsOn | next(UpperTempS) | next(BrokenHeater) | next(NoTare) : next(TurnOnHeater) := 0;
+        next(SystemIsOn) & ~next(BottomTempS) & ~next(BrokenHeater) & ~next(NoTare) : next(TurnOnHeater) := 1;
+        ~next(SystemIsOn) | next(UpperTempS) | next(BrokenHeater) | next(NoTare) : next(TurnOnHeater) := 0;
         default : next(TurnOnHeater) := TurnOnHeater;
       };
       /* Lamps */
@@ -330,6 +330,19 @@ module main()
         C_BottomTempS_1, C_BottomTempS_2, C_BottomTempS_3, C_BottomTempS_4, C_BottomTempS_5,
         C_UpperTempS_1, C_UpperTempS_2, C_UpperTempS_3, C_UpperTempS_4
       prove
+		P01_Interrupt,
+      P02_OffSystem,
+      P03_DamperActuator,
+      P04_Modes,
+      P05_ValveAndConveyor,
+      P06_ConveyorAndTare,
+      P07_DamperMotion,
+      P08_Portion,
+      P09_ForgottenFeederTmr,
+      P09_ForgottenHeaterTmr,
+      P09_ForgottenTareTmr,
+      P09_ForgottenMeltingTmr,
+      P10_ResetErrorSignal,
         P11_StartFeedIsOn,
         P11_OpenDamperIsOn,
         P11_CloseDamperIsOn,

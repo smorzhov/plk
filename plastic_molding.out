@@ -1,0 +1,9 @@
+{
+/* description */ "(AG (((OpenDamper+CloseDamper)<=1)&((OpenedDamperS+ClosedDamperS)<=1)) "
+/* identifier  */ {\P03_DamperActuator }
+/* truth value */ 1
+/* loop begins */ 0
+/* time */ 1498121292
+{
+}
+}

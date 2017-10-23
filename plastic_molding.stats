@@ -1,0 +1,45 @@
+{
+time = 1498120894
+time = \P01_Interrupt 
+mc_time = 0.109201
+}
+{
+time = 1498120901
+time = \P02_OffSystem 
+mc_time = 0.093601
+}
+{
+time = 1498120908
+time = \P03_DamperActuator 
+mc_time = 0.093601
+}
+{
+time = 1498121020
+time = \P04_Modes 
+mc_time = 0.592804
+}
+{
+time = 1498121031
+time = \P05_ValveAndConveyor 
+mc_time = 0.202801
+}
+{
+time = 1498121043
+time = \P06_ConveyorAndTare 
+mc_time = 0.140401
+}
+{
+time = 1498121053
+time = \P07_DamperMotion 
+mc_time = 0.109201
+}
+{
+time = 1498121095
+time = \P03_DamperActuator 
+mc_time = 0.265202
+}
+{
+time = 1498121292
+time = \P03_DamperActuator 
+mc_time = 9.672062
+}
